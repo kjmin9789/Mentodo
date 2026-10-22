@@ -40,6 +40,16 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(self.runner.snapshot()['status'], 'error')
         self.assertFalse(marker.exists())
 
+    def test_browser_connection_failure_shows_cause_without_raw_log(self):
+        marker = self.root / 'collection.lock'
+        marker.touch()
+        self.runner.run([sys.executable, '-c', "print('Connection invalid\\nFailed to start ego lite.\\nprivate-log-content')"], marker)
+        state = self.runner.snapshot()
+        self.assertEqual(state['status'], 'error')
+        self.assertIn('이고라이트', state['error'])
+        self.assertNotIn('private-log-content', state['error'])
+        self.assertFalse(marker.exists())
+
     def test_running_and_scheduled_lock_prevent_duplicate(self):
         self.configure('pass')
         self.runner.state = {'status': 'running'}

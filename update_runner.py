@@ -49,7 +49,17 @@ class UpdateRunner:
                 raise ValueError('수집을 완료하지 못했습니다. 로그인과 수집 로그를 확인해 주세요.')
             state = {'status': 'done', 'finishedAt': datetime.now(timezone.utc).isoformat()}
         except (OSError, ValueError, subprocess.SubprocessError):
-            state = {'status': 'error', 'error': '수집을 완료하지 못했습니다. 로그인과 collector.log를 확인해 주세요.'}
+            message = '수집을 완료하지 못했습니다. 로그인과 collector.log를 확인해 주세요.'
+            try:
+                with (self.data_dir / 'collector.log').open('rb') as log:
+                    log.seek(0, os.SEEK_END)
+                    log.seek(max(0, log.tell() - 16384))
+                    tail = log.read().decode('utf-8', errors='replace')
+                if 'Connection invalid' in tail and 'Failed to start ego lite' in tail:
+                    message = '수집 프로세스가 이고라이트에 연결하지 못했습니다. Codex 채팅에서 브라우저 접근 권한을 확인해 주세요. 기존 업무는 유지됩니다.'
+            except OSError:
+                pass
+            state = {'status': 'error', 'error': message}
         finally:
             marker.unlink(missing_ok=True)
         with self.lock:
