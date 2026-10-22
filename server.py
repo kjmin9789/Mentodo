@@ -2,6 +2,7 @@
 import argparse
 import ipaddress
 import json
+from update_runner import UpdateRunner
 import re
 import os
 import socket
@@ -59,6 +60,7 @@ class TrackerServer(ThreadingHTTPServer):
         self.data_dir = Path(data_dir) if data_dir is not None else ROOT / 'local'
         self.state_file = Path(state_file) if state_file is not None else self.data_dir / 'state.json'
         self.state_lock = threading.Lock()
+        self.updater = UpdateRunner(ROOT, self.data_dir)
         self.local_hosts = {'127.0.0.1', *lan_hosts}
         self.allowed_hosts = {'localhost', *self.local_hosts}
         super().__init__(address, partial(Handler, directory=str(ROOT)))
@@ -175,6 +177,9 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             return
+        if urlsplit(self.path).path == '/api/update':
+            self.json_response(200, self.server.updater.snapshot() if self.can_edit() else {'status': 'idle'})
+            return
         path = urlsplit(self.path).path
         if path in ('/tasks.json', '/api/profile'):
             try:
@@ -196,6 +201,20 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if not self.can_edit():
             self.json_response(403, {'error': '공유 화면에서는 조회만 가능합니다.'})
+            return
+        if urlsplit(self.path).path == '/api/update':
+            if self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
+                self.json_response(415, {'error': 'JSON 요청만 지원합니다.'})
+                return
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 32 or json.loads(self.rfile.read(length)) != {}:
+                    raise ValueError('잘못된 요청입니다.')
+                self.json_response(202, self.server.updater.start())
+            except FileNotFoundError:
+                self.json_response(503, {'error': '수집 실행 설정이 없습니다. 정기 갱신 가이드의 수동 업데이트 설정을 확인해 주세요.'})
+            except (OSError, ValueError, TypeError) as error:
+                self.json_response(409, {'error': str(error)})
             return
         if urlsplit(self.path).path != '/api/state':
             self.json_response(404, {'error': '잘못된 요청 경로입니다.'})
