@@ -1,5 +1,5 @@
 const icon=(name,className="")=>`<svg class="montage-icon ${className}" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><use href="assets/montage-icons.svg#${name}"></use></svg>`;
-// shortcut: 대화 수집은 별도 작업입니다. 로컬 JSON을 갱신한 뒤 화면을 새로고침합니다.
+// 대화 수집은 별도 작업이며, 이 화면은 저장된 업무 데이터를 다시 읽습니다.
 let tasks=[];
 let profile;
 try {
@@ -116,14 +116,35 @@ document.querySelector('#profile-role').textContent=profile.role;
 document.querySelectorAll('.profile-photo').forEach(image=>{image.src=profile.avatar;image.alt=`${profile.name} 프로필 사진`;});
 document.querySelector('.source-note').textContent=profile.isExample?'예시 데이터':'로컬 데이터';
 document.querySelector('.eyebrow').textContent=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'long'}).format(new Date());
-for(const date of [...new Set(tasks.map(task=>task.date))].sort().reverse()){
-  const option=document.createElement('option');option.value=date;option.textContent=date;document.querySelector('#date-filter').append(option);
+function rebuildFilters(){
+  for(const [selector,values,allLabel,selected] of [
+    ['#project-filter',[...new Set(tasks.map(task=>task.project))],'전체 프로젝트',activeProject],
+    ['#date-filter',[...new Set(tasks.map(task=>task.date))].sort().reverse(),'전체 기간',activeDate]
+  ]){
+    const select=document.querySelector(selector);
+    select.replaceChildren(new Option(allLabel,'all'),...values.map(value=>new Option(value,value)));
+    select.value=values.includes(selected)?selected:'all';
+    if(selector==='#project-filter')activeProject=select.value;else activeDate=select.value;
+  }
 }
-const projectSelect=document.querySelector('#project-filter');
-for(const project of [...new Set(tasks.map(t=>t.project))]){
-  const option=document.createElement('option');option.value=project;option.textContent=project;projectSelect.append(option);
+rebuildFilters();
+document.querySelector('#project-filter').onchange=e=>{activeProject=e.target.value;render();};
+let refreshingTasks=false;
+async function refreshTasks(){
+  if(refreshingTasks)return;
+  refreshingTasks=true;
+  try{
+    const response=await fetch('./tasks.json',{cache:'no-store'});
+    if(!response.ok)throw new Error('Task refresh failed');
+    const next=await response.json();
+    if(Array.isArray(next)&&JSON.stringify(next)!==JSON.stringify(tasks)){
+      tasks=next;rebuildFilters();render();
+    }
+  }catch{ /* 다음 확인 때 재시도하고, 표시 중인 데이터는 유지합니다. */ }
+  finally{refreshingTasks=false;}
 }
-projectSelect.onchange=e=>{activeProject=e.target.value;render();};
+window.addEventListener('focus',()=>refreshTasks());
+setInterval(()=>{if(!document.hidden)refreshTasks();},60000);
 document.querySelector('.type-filters').addEventListener('click',e=>{const button=e.target.closest('[data-type]');if(button){activeType=button.dataset.type;render();}});
 await refreshState();
 render();
