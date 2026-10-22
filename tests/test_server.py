@@ -81,6 +81,13 @@ class StateTests(unittest.TestCase):
         self.assertFalse(self.server.read_profile()['isExample'])
         self.assertEqual(self.server.read_profile()['name'], '테스트 사용자')
 
+    def test_projects_stay_separate(self):
+        rows = self.server.read_tasks()[:2]
+        rows[0]['project'] = '아폴로'
+        rows[1]['project'] = '종목필터 상품화'
+        (Path(self.temp.name) / 'tasks.json').write_text(json.dumps(rows), encoding='utf-8')
+        self.assertEqual({task['project'] for task in self.server.read_tasks()}, {'아폴로', '종목필터 상품화'})
+
     def test_reject_unsafe_or_duplicate_data(self):
         rows = self.server.read_tasks()
         invalid = dict(rows[0], id='bad" onclick="oops')
