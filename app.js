@@ -153,3 +153,40 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshSta
 // 브라우저 간 완료 상태만 확인합니다. 새 디스코드 메시지 수집 주기와는 별개입니다.
 setInterval(()=>{if(!document.hidden)refreshState();},5000);
 
+
+const updateButton=document.querySelector('#update-button');
+let updatePolling=false,updateSubmitting=false,lastUpdateResult='';
+async function refreshUpdate(){
+  if(updatePolling)return;
+  updatePolling=true;
+  try{
+    const response=await fetch('/api/update',{cache:'no-store'});
+    if(!response.ok)throw new Error('Update status unavailable');
+    const state=await response.json();
+    updateButton.hidden=!canEdit;
+    updateButton.disabled=updateSubmitting||state.status==='running';
+    updateButton.textContent=state.status==='running'?'업데이트 중…':'업데이트';
+    updateButton.setAttribute('aria-busy',String(state.status==='running'));
+    const result=JSON.stringify(state);
+    if(state.status==='done'&&result!==lastUpdateResult){
+      await Promise.all([refreshTasks(),refreshState()]);
+      showToast('디스코드 수집을 완료했습니다. 최신 목록을 반영했습니다.');
+    }else if(state.status==='error'&&result!==lastUpdateResult){showToast(state.error);}
+    lastUpdateResult=result;
+  }catch{ /* 다음 상태 확인에서 재시도합니다. */ }
+  finally{updatePolling=false;}
+}
+updateButton.onclick=async()=>{
+  if(updateSubmitting)return;
+  updateSubmitting=true;updateButton.disabled=true;updateButton.textContent='업데이트 중…';
+  try{
+    const response=await fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const state=await response.json();
+    if(!response.ok)throw new Error(state.error||'수집을 시작하지 못했습니다.');
+    showToast('디스코드 새 대화와 미완료 항목을 확인합니다.');
+  }catch(error){showToast(error.message);}
+  finally{updateSubmitting=false;updateButton.disabled=false;updateButton.textContent='업데이트';await refreshUpdate();}
+};
+await refreshUpdate();
+window.addEventListener('focus',()=>refreshUpdate());
+setInterval(()=>{if(!document.hidden)refreshUpdate();},3000);
