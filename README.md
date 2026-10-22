@@ -1,4 +1,4 @@
-# Mention
+# Mentodo
 
 디스코드 대화에서 내 할 일, 내가 요청한 일, 내가 한 질문, 공유 내용을 정리하는 **개인 업무 트래커**입니다. 대화의 맥락과 후속 결과를 확인한 데이터를 읽어 보여줍니다.
 
@@ -9,7 +9,7 @@
 
 **자동 수집 봇은 포함하지 않습니다.** Codex로 대화를 확인해 개인 데이터 파일을 만들거나 직접 입력하는 방식입니다. 처음 실행하면 실제 사람의 대화가 아닌 예시 4건이 표시됩니다.
 
-![Mention 예시 화면](docs/preview.png)
+![Mentodo 예시 화면](docs/preview.png)
 
 ## 바로 실행
 
@@ -18,16 +18,16 @@ Python **3.10 이상**과 Git이 필요합니다. Node.js와 추가 Python 패�
 **macOS / Linux**
 
 ```sh
-git clone https://github.com/kjmin9789/mention.git
-cd mention
+git clone https://github.com/kjmin9789/Mentodo.git
+cd Mentodo
 python3 server.py
 ```
 
 **Windows PowerShell**
 
 ```powershell
-git clone https://github.com/kjmin9789/mention.git
-cd mention
+git clone https://github.com/kjmin9789/Mentodo.git
+cd Mentodo
 py -3 server.py
 ```
 

@@ -11,8 +11,8 @@
 macOS / Linux 터미널:
 
 ```sh
-git clone https://github.com/kjmin9789/mention.git
-cd mention
+git clone https://github.com/kjmin9789/Mentodo.git
+cd Mentodo
 python3 --version
 python3 server.py
 ```
@@ -20,8 +20,8 @@ python3 server.py
 Windows PowerShell:
 
 ```powershell
-git clone https://github.com/kjmin9789/mention.git
-cd mention
+git clone https://github.com/kjmin9789/Mentodo.git
+cd Mentodo
 py -3 --version
 py -3 server.py
 ```

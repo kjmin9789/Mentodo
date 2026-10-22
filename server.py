@@ -251,7 +251,7 @@ def lan_addresses():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Mention — 개인 업무 트래커')
+    parser = argparse.ArgumentParser(description='Mentodo — 개인 업무 트래커')
     parser.add_argument('--share', action='store_true', help='같은 네트워크에 조회용으로 공유')
     parser.add_argument('--port', type=int, default=4317, help='서버 포트 (기본 4317)')
     parser.add_argument('--check', action='store_true', help='개인 데이터 형식만 검사하고 종료')
