@@ -1,0 +1,73 @@
+# Mention
+
+디스코드 대화에서 내 할 일, 내가 요청한 일, 내가 한 질문, 공유 내용을 정리하는 **개인 업무 트래커**입니다. 대화의 맥락과 후속 결과를 확인한 데이터를 읽어 보여줍니다.
+
+- 프로젝트와 디자인·기획·리뷰·마케팅 필터
+- 원문·후속 근거 펼쳐보기, 완료 처리·되돌리기
+- 한 컴퓨터에서 브라우저를 바꿔도 같은 완료 상태 유지
+- 필요할 때 같은 네트워크에 조회용으로 공유
+
+**자동 수집 봇은 포함하지 않습니다.** Codex로 대화를 확인해 개인 데이터 파일을 만들거나 직접 입력하는 방식입니다. 처음 실행하면 실제 사람의 대화가 아닌 예시 4건이 표시됩니다.
+
+![Mention 예시 화면](docs/preview.png)
+
+## 바로 실행
+
+Python **3.10 이상**과 Git이 필요합니다. Node.js와 추가 Python 패키지는 필요하지 않습니다. 저장소가 비공개라면 먼저 GitHub 접근 권한을 받아야 합니다.
+
+**macOS / Linux**
+
+```sh
+git clone https://github.com/kjmin9789/mention.git
+cd mention
+python3 server.py
+```
+
+**Windows PowerShell**
+
+```powershell
+git clone https://github.com/kjmin9789/mention.git
+cd mention
+py -3 server.py
+```
+
+브라우저에서 [localhost:4317](http://localhost:4317/)을 엽니다. 터미널을 켜둔 동안 실행되며 `Ctrl+C`로 종료합니다. 설치와 문제 해결은 [설치 가이드](docs/SETUP.md)에 정리했습니다.
+
+## 내 데이터로 사용
+
+1. `local/` 폴더를 만들고, [프로필 예시](examples/profile.json)를 `local/profile.json`으로 복사해 본인 이름을 적습니다.
+2. [대화 수집 가이드와 복사용 프롬프트](docs/COLLECT.md)를 사용해 본인의 `local/tasks.json`을 만듭니다. 형식은 [데이터 작성 가이드](docs/DATA.md)를 따릅니다.
+3. `python3 server.py --check`로 확인하고 페이지를 새로고침합니다. Windows에서는 `python3` 대신 `py -3`을 사용합니다.
+
+개인 사진은 선택 사항입니다. 사용하려면 `local/avatar.png`에 저장하고 프로필의 `avatar`에 `local/avatar.png`를 적습니다.
+
+## 상태는 어디에 저장되나요?
+
+| 파일 | 내용 |
+| --- | --- |
+| `local/tasks.json` | 내가 수집한 업무와 원문·후속 근거 |
+| `local/profile.json` | 내 이름·역할·사진 경로 |
+| `local/state.json` | 내가 직접 바꾼 완료 상태 |
+
+`local/`은 Git에서 제외됩니다. 자신의 컴퓨터에 이 폴더를 백업하면 됩니다. 같은 컴퓨터의 다른 브라우저는 이 로컬 서버의 상태를 함께 사용하며, 서로 다른 컴퓨터는 각각 별도 데이터를 사용합니다. 다른 사람의 완료 상태가 내 파일로 섞이지 않습니다.
+
+브라우저로 돌아올 때와 화면을 보고 있는 동안 5초마다 **완료 상태만** 다시 확인합니다. 디스코드 메시지가 자동 갱신되는 주기는 아닙니다. 새 데이터를 수집한 뒤에는 페이지를 새로고침합니다.
+
+## 다른 사람에게 화면 공유
+
+```sh
+python3 server.py --share
+```
+
+터미널에 출력된 `http://내부IP:4317`을 같은 네트워크의 사람에게 전달합니다. 공유받은 사람은 **조회만** 할 수 있습니다. `localhost`는 각자 자신의 컴퓨터를 뜻하므로 공유 주소로 전달하지 않습니다.
+
+이 모드는 로그인 없이 내 업무 내용과 원문 링크를 보여줍니다. 신뢰하는 같은 네트워크에서만 사용하고, 공유할 필요가 없어지면 서버를 종료해 기본 모드로 다시 실행합니다. 외부 인터넷용 배포나 포트 포워딩은 제공하지 않습니다. 자세한 내용은 [설치·공유 가이드](docs/SETUP.md#같은-네트워크에-공유)를 봐주세요.
+
+## 개발 확인
+
+```sh
+python3 -m unittest discover -s tests
+python3 server.py --check
+```
+
+UI는 HTML·CSS·JavaScript, 로컬 서버는 Python 표준 라이브러리로 구성했습니다. 이 저장소의 코드를 사용할 수 있는 범위는 [라이선스](LICENSE)를, 글꼴·아이콘의 출처는 [서드파티 고지](THIRD_PARTY_NOTICES.md)를 확인해 주세요.
