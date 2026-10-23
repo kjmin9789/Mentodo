@@ -39,9 +39,18 @@ def validate_tasks(tasks):
         date.fromisoformat(task['date'])
         if not re.fullmatch(r'(?:[01][0-9]|2[0-3]):[0-5][0-9]', task['time']):
             raise ValueError('시간은 HH:MM 형식이어야 합니다.')
+        if task.get('source', 'discord') not in ('discord', 'notion'):
+            raise ValueError('수집 채널은 discord 또는 notion이어야 합니다.')
         links = [task['url']]
         if 'pr' in task:
             links.append(task['pr'])
+        body_links = task.get('links', [])
+        if not isinstance(body_links, list):
+            raise ValueError('본문 링크는 배열이어야 합니다.')
+        for entry in body_links:
+            if not isinstance(entry, dict) or not isinstance(entry.get('label'), str) or not entry['label'].strip():
+                raise ValueError('본문 링크에 label과 url을 입력해 주세요.')
+            links.append(entry.get('url'))
         evidence = task.get('evidence', [])
         if not isinstance(evidence, list):
             raise ValueError('후속 근거는 배열이어야 합니다.')

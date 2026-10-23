@@ -100,6 +100,23 @@ class StateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_tasks([dict(rows[0], category='shared')])
 
+    def test_notion_links_and_existing_discord_data(self):
+        task = self.server.read_tasks()[0]
+        notion = dict(task, source='notion', url='https://app.notion.com/p/example',
+                      links=[{'label': 'Figma 원문', 'url': 'https://www.figma.com/design/example'}])
+        self.assertEqual(validate_tasks([notion])[0]['links'][0]['label'], 'Figma 원문')
+        self.assertEqual(validate_tasks([task]), [task])
+        for fields in [
+            {'source': 'unknown'},
+            {'links': 'https://example.com'},
+            {'links': [None]},
+            {'links': [{'label': '', 'url': 'https://example.com'}]},
+            {'links': [{'label': '원문', 'url': 'javascript:alert(1)'}]},
+            {'links': [{'label': '원문'}]},
+        ]:
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                validate_tasks([dict(notion, **fields)])
+
     def test_corrupt_file_is_not_overwritten(self):
         self.path.write_text('broken')
         self.assertEqual(self.request()[0], 503)
