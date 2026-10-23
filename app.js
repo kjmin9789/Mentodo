@@ -16,6 +16,9 @@ try {
 }
 const categoryNames={mine:'내 할 일',requested:'요청한 일',question:'내가 한 질문',shared:'공유'};
 const typeNames={design:'디자인',planning:'기획',review:'리뷰',marketing:'마케팅'};
+let activeSource='all';
+const sourceOf=t=>t.source||(['notion.com','app.notion.com','www.notion.so','notion.so'].includes(new URL(t.url).hostname)?'notion':'discord');
+const sourceNames={discord:'Discord',notion:'Notion'};
 let activeProject='all';
 let activeType='all';
 let activeCategory='all';
@@ -31,11 +34,12 @@ let activeTab='todo';
 let toastTimer;
 const statusOf = t => overrides[t.id] || t.initial;
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const scopedTasks=()=>tasks.filter(t=>(activeProject==='all'||t.project===activeProject)&&(activeType==='all'||t.type===activeType)&&(activeDate==='all'||t.date===activeDate)&&(activeCategory==='all'||t.category===activeCategory));
+const scopedTasks=()=>tasks.filter(t=>(activeSource==='all'||sourceOf(t)===activeSource)&&(activeProject==='all'||t.project===activeProject)&&(activeType==='all'||t.type===activeType)&&(activeDate==='all'||t.date===activeDate)&&(activeCategory==='all'||t.category===activeCategory));
 function counts(){ return scopedTasks().reduce((acc,t)=>{acc[statusOf(t)]++;return acc;},{todo:0,done:0,reference:0}); }
 function render(){
   const expanded=[...document.querySelectorAll('details.task[open]')].map(n=>n.dataset.id);
   document.querySelectorAll('[data-type]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.type===activeType)));
+  document.querySelectorAll('[data-source]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.source===activeSource)));
   const count=counts();
   document.querySelector('#nav-count').textContent=tasks.filter(t=>statusOf(t)==='todo').length;
   document.querySelector('#total-count').textContent=scopedTasks().length;
@@ -50,8 +54,8 @@ function render(){
   const visible=scopedTasks().filter(t=>statusOf(t)===activeTab);
   document.querySelector('#tasks').innerHTML=visible.length ? visible.map(t=>{
     const status=statusOf(t), cls=status==='todo'?'':status;
-    const label=status==='done'?'완료':t.kind==='review'?'PR 리뷰':t.kind==='reference'?'공유':t.category==='requested'?'진행 확인':t.category==='question'?'답변 확인':'확인 요청';
-    return `<details class="task" data-id="${t.id}"><summary><span class="task-type ${cls}" aria-hidden="true">${icon(t.type==='review'?'document-search':t.category==='shared'?'share':t.category==='requested'?'send':t.category==='question'?'circle-question':'list')}</span><div class="task-info"><div class="task-meta"><span class="type-badge ${cls}">${label}</span><span>${categoryNames[t.category]}</span><span>·</span><span># ${escape(t.channel)}</span><span>·</span><span>${t.sender.split(" → ").map(escape).join(icon("arrow-right","sender-arrow"))}</span></div><h2>${escape(t.title)}</h2><div class="task-caption"><span class="task-project">${escape(t.project)}</span><span class="task-work-type">${typeNames[t.type]}</span><span>${escape(t.caption)}</span></div></div><time class="task-time" datetime="${t.date}T${t.time}:00">${t.date.slice(5).replace("-","/")} ${t.time}</time>${icon("chevron-down","chevron")}</summary><div class="task-body"><div class="context-label">멘션 원문</div><div class="quote"><strong>${escape(t.author)}</strong>${escape(t.quote)}</div><div class="context-note">${icon("arrow-turn-down-right","context-arrow")}<div>${escape(t.note)}</div></div>${t.evidence?.length?`<div class="evidence-links">${t.evidence.map(e=>`<a href="${escape(e.url)}" target="_blank" rel="noopener noreferrer">${escape(e.label)} ${icon("arrow-up-right")}</a>`).join('')}</div>`:''}<div class="task-actions">${status!=='reference'&&canEdit?`<button ${saving||!stateReady?'disabled':''} class="complete-button ${status==='done'?'restore':''}" data-action="${status==='done'?'restore':'complete'}" data-id="${t.id}">${icon(status==='done'?'arrow-turn-down-left':'check')}${status==='done'?'할 일로 되돌리기':'완료 처리'}</button>`:''}${t.pr?`<a class="origin-link" href="${escape(t.pr)}" target="_blank" rel="noopener noreferrer">PR #${escape(t.pr.split("/").pop())} 열기 ${icon("arrow-up-right")}</a>`:''}<a class="origin-link secondary-link" href="${escape(t.url)}" target="_blank" rel="noopener noreferrer">디스코드 원문 ${icon("arrow-up-right")}</a></div></div></details>`;
+    const label=status==='done'?'완료':t.kind==='review'?(t.pr?'PR 리뷰':'리뷰 요청'):t.kind==='reference'?'공유':t.category==='requested'?'진행 확인':t.category==='question'?'답변 확인':'확인 요청';
+    return `<details class="task" data-id="${t.id}"><summary><span class="task-type ${cls}" aria-hidden="true">${icon(t.type==='review'?'document-search':t.category==='shared'?'share':t.category==='requested'?'send':t.category==='question'?'circle-question':'list')}</span><div class="task-info"><div class="task-meta"><span class="type-badge ${cls}">${label}</span><span>${categoryNames[t.category]}</span><span>·</span><span>${sourceNames[sourceOf(t)]} · ${escape(t.channel)}</span><span>·</span><span>${t.sender.split(" → ").map(escape).join(icon("arrow-right","sender-arrow"))}</span></div><h2>${escape(t.title)}</h2><div class="task-caption"><span class="task-project">${escape(t.project)}</span><span class="task-work-type">${typeNames[t.type]}</span><span>${escape(t.caption)}</span></div></div><time class="task-time" datetime="${t.date}T${t.time}:00">${t.date.slice(5).replace("-","/")} ${t.time}</time>${icon("chevron-down","chevron")}</summary><div class="task-body"><div class="context-label">멘션 원문</div><div class="quote"><strong>${escape(t.author)}</strong>${escape(t.quote)}</div><div class="context-note">${icon("arrow-turn-down-right","context-arrow")}<div>${escape(t.note)}</div></div>${t.links?.length?`<div class="evidence-links" aria-label="본문 링크">${t.links.map(e=>`<a href="${escape(e.url)}" target="_blank" rel="noopener noreferrer">${escape(e.label)} ${icon("arrow-up-right")}</a>`).join('')}</div>`:''}${t.evidence?.length?`<div class="evidence-links">${t.evidence.map(e=>`<a href="${escape(e.url)}" target="_blank" rel="noopener noreferrer">${escape(e.label)} ${icon("arrow-up-right")}</a>`).join('')}</div>`:''}<div class="task-actions">${status!=='reference'&&canEdit?`<button ${saving||!stateReady?'disabled':''} class="complete-button ${status==='done'?'restore':''}" data-action="${status==='done'?'restore':'complete'}" data-id="${t.id}">${icon(status==='done'?'arrow-turn-down-left':'check')}${status==='done'?'할 일로 되돌리기':'완료 처리'}</button>`:''}${t.pr?`<a class="origin-link" href="${escape(t.pr)}" target="_blank" rel="noopener noreferrer">PR #${escape(t.pr.split("/").pop())} 열기 ${icon("arrow-up-right")}</a>`:''}<a class="origin-link secondary-link" href="${escape(t.url)}" target="_blank" rel="noopener noreferrer">${sourceNames[sourceOf(t)]} 원문 ${icon("arrow-up-right")}</a></div></div></details>`;
   }).join('') : `<div class="empty"><h2>이 조건에 해당하는 ${activeTab==='todo'?'진행 중인 일':activeTab==='done'?'완료한 일':'공유 내용'}이 없습니다</h2><p>프로젝트, 종류, 기간 또는 분류를 바꾸어 다른 항목을 확인할 수 있습니다.</p>${activeTab==='todo'?'<button data-show-done>완료한 일 보기</button>':''}</div>`;
   expanded.forEach(id=>{const item=document.querySelector(`details[data-id="${id}"]`);if(item)item.open=true;});
   if(!stateReady)document.querySelector('#summary-heading').textContent='저장 상태를 확인할 수 없습니다';
@@ -107,7 +111,8 @@ async function changeStatus(id,status,offerUndo=true){
 document.querySelector('.tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-tab]');if(tab){activeTab=tab.dataset.tab;render();}});
 document.querySelector('.tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=['todo','done','reference'];let index=tabs.indexOf(activeTab);index=e.key==='Home'?0:e.key==='End'?2:(index+(e.key==='ArrowRight'?1:2))%3;activeTab=tabs[index];render();document.querySelector(`[data-tab="${activeTab}"]`).focus();});
 document.querySelector('#tasks').addEventListener('click',e=>{const action=e.target.closest('[data-action]');if(action)changeStatus(action.dataset.id,action.dataset.action==='complete'?'done':'todo');if(e.target.closest('[data-show-done]')){activeTab='done';render();}});
-document.querySelector('#today-nav').onclick=()=>{activeTab='todo';activeCategory='all';activeDate='all';activeProject='all';activeType='all';document.querySelector('#project-filter').value='all';document.querySelector('#category-filter').value='all';document.querySelector('#date-filter').value='all';render();};
+document.querySelector('.source-group').addEventListener('click',e=>{const button=e.target.closest('[data-source]');if(button){activeSource=button.dataset.source;render();}});
+document.querySelector('#today-nav').onclick=()=>{activeTab='todo';activeSource='all';activeCategory='all';activeDate='all';activeProject='all';activeType='all';document.querySelector('#project-filter').value='all';document.querySelector('#category-filter').value='all';document.querySelector('#date-filter').value='all';render();};
 document.querySelector('#category-filter').onchange=e=>{activeCategory=e.target.value;if(activeCategory==='shared')activeTab='reference';else if(activeTab==='reference'&&activeCategory!=='all')activeTab='todo';render();};
 document.querySelector('#date-filter').onchange=e=>{activeDate=e.target.value;render();};
 document.querySelector('#workspace-title').textContent=`${profile.name}님의 업무함`;
@@ -150,7 +155,7 @@ await refreshState();
 render();
 window.addEventListener('focus',()=>refreshState());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshState();});
-// 브라우저 간 완료 상태만 확인합니다. 새 디스코드 메시지 수집 주기와는 별개입니다.
+// 브라우저 간 완료 상태만 확인합니다. 새 대화·멘션 수집 주기와는 별개입니다.
 setInterval(()=>{if(!document.hidden)refreshState();},5000);
 
 
@@ -170,7 +175,7 @@ async function refreshUpdate(){
     const result=JSON.stringify(state);
     if(state.status==='done'&&result!==lastUpdateResult){
       await Promise.all([refreshTasks(),refreshState()]);
-      showToast('디스코드 수집을 완료했습니다. 최신 목록을 반영했습니다.');
+      showToast('업무 수집을 완료했습니다. 최신 목록을 반영했습니다.');
     }else if(state.status==='error'&&result!==lastUpdateResult){showToast(state.error);}
     lastUpdateResult=result;
   }catch{ /* 다음 상태 확인에서 재시도합니다. */ }
@@ -183,7 +188,7 @@ updateButton.onclick=async()=>{
     const response=await fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const state=await response.json();
     if(!response.ok)throw new Error(state.error||'수집을 시작하지 못했습니다.');
-    showToast('디스코드 새 대화와 미완료 항목을 확인합니다.');
+    showToast('새 대화·멘션과 미완료 항목을 확인합니다.');
   }catch(error){showToast(error.message);}
   finally{updateSubmitting=false;updateButton.disabled=false;updateButton.textContent='업데이트';await refreshUpdate();}
 };
