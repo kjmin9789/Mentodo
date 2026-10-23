@@ -81,6 +81,21 @@ class StateTests(unittest.TestCase):
         self.assertFalse(self.server.read_profile()['isExample'])
         self.assertEqual(self.server.read_profile()['name'], '테스트 사용자')
 
+    def test_tasks_api_defaults_to_today_and_bounds_requested_history(self):
+        from datetime import date, timedelta
+        rows = self.server.read_tasks()
+        today = date.today()
+        rows[0]['date'] = (today - timedelta(days=100)).isoformat()
+        rows[1]['date'] = today.isoformat()
+        rows[2]['date'] = (today + timedelta(days=1)).isoformat()
+        rows[3]['date'] = (today - timedelta(days=1)).isoformat()
+        (Path(self.temp.name) / 'tasks.json').write_text(json.dumps(rows))
+        with urlopen(self.base + '/tasks.json') as response:
+            self.assertEqual([row['id'] for row in json.load(response)], [rows[1]['id']])
+        with urlopen(self.base + '/tasks.json?start=2000-01-01&end=2099-12-31') as response:
+            self.assertEqual([row['id'] for row in json.load(response)], [rows[1]['id'], rows[3]['id']])
+        self.assertEqual(len(self.server.read_tasks()), 4)
+
     def test_projects_stay_separate(self):
         rows = self.server.read_tasks()[:2]
         rows[0]['project'] = '아폴로'

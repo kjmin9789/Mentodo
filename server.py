@@ -3,6 +3,7 @@ import argparse
 import ipaddress
 import json
 from update_runner import UpdateRunner
+from task_dates import tasks_for_dates
 import re
 import os
 import socket
@@ -192,7 +193,7 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path in ('/tasks.json', '/api/profile'):
             try:
-                self.json_response(200, self.server.read_tasks() if path == '/tasks.json' else self.server.read_profile())
+                self.json_response(200, tasks_for_dates(self.server.read_tasks(), urlsplit(self.path).query) if path == '/tasks.json' else self.server.read_profile())
             except (OSError, ValueError, TypeError) as error:
                 self.json_response(503, {'error': f'개인 설정 파일을 확인해 주세요: {error}'})
         elif path == '/api/state':

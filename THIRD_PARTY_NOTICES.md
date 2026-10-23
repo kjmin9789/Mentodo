@@ -36,3 +36,7 @@ distributed under the SIL Open Font License 1.1. See
 copyright and license notices.
 
 Source: https://github.com/orioncactus/pretendard
+
+## Air Datepicker 3.6.0
+
+The date range calendar in `assets/vendor/air-datepicker-3.6.0/` is [Air Datepicker](https://github.com/t1m0n/air-datepicker), distributed under the MIT License. The Korean locale is converted from the package's CommonJS export to an ES module; the calendar JavaScript and CSS are unmodified. See `assets/vendor/air-datepicker-3.6.0/LICENSE.md` for the full license. Source commit: `7031158c6c89b8c95b229748d913aa82639e74e8`.
